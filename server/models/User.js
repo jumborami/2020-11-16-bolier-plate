@@ -3,7 +3,7 @@
 const mongoose = require('mongoose'); //mongo DB 를 편하게 사용하기 위해 mongoose 가져오기
 const bcrypt = require('bcrypt');     //비밀번호 암호화를 위해 bcrypt 가져오기
 const saltRounds = 10;                //bcrypt -> 10자리인 salt
-const jwt = require('jsonwebtoken');  //토큰 생성을 위해 jsonwebtoken 가져오기
+var jwt = require('jsonwebtoken');  //토큰 생성을 위해 jsonwebtoken 가져오기
 
 const userSchema = mongoose.Schema({
 	name: {
@@ -68,7 +68,7 @@ userSchema.methods.comparePassword = function(plainPassword, cb) {
 	//그냥 비번(plainPassword)와 암호화된 비번 비교 => 그냥 비번을 암호화해서 확인해야 한다
 	bcrypt.compare(plainPassword, this.password, function(err, isMatch) {
 		if(err) return cb(err); //에러가 난다면 콜백에 에러 리턴
-		cb(null, isMatch);      //일치하다면 콜백을 주는데 에러없고(널) isMatch(true?)
+		cb(null, isMatch);      //일치하다면 콜백을 주는데 에러없고(널) isMatch(true)
 	});
 };
 
@@ -78,7 +78,7 @@ userSchema.methods.generateToken = function(cb) {
 	var user = this;
 
 	//user._id + 'secretToken' = token 생성
-	var token = jwt.sign(user._id.toHexString(), 'secretToken'); //_id는 디비에 들어오는 _id이다
+	var token = jwt.sign(user._id.toHexString(), 'secret'); //_id는 디비에 들어오는 _id이다
 	user.token = token; //user의 token에 생성된 token을 넣는다
 	user.save(function(err, user) { //db에 토큰 저장? (server 측)
 		if(err) return cb(err); //에러가 있다면 콜백으로 에러 전달
@@ -88,18 +88,19 @@ userSchema.methods.generateToken = function(cb) {
 
 
 //인증 시 사용할 메서드 (토큰 복호화하여 디비에서 유저 찾기 (jsonwebtoken 사용))
-userSchema.statics.findByToken = function ( token, cb) {
+userSchema.statics.findByToken = function(token, cb) {
 	var user = this;
 
 	//client 측 cookie의 토큰을 decode복호화 한다
-	jwt.verify(token, 'secretToken', function(err, decoded) { //복호화된 유저아이디가 decoded에 들어간다
+	jwt.verify(token, 'secret', function(err, decoded) {//복호화된 유저아이디가 decoded에 들어간다
 		//client 에서 가져온 토큰과 디비에 보관된 토큰이 일치하는지 확인 (디비에서 복호화한 아이디와 토큰을 찾는다)
-		user.findOne({"_id": decoded, "token": token}, function(err, user) {
+		console.log(decoded);
+		user.findOne({ "_id": decoded, "token": token }, function(err, user) {
+			console.log(user);
 			if(err) return cb(err);
 			cb(null, user);
 		});
 	});
-
 };
 
 

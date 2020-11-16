@@ -14,7 +14,7 @@ let auth = (req, res, next) => {
 		req.token = token; //req에 토큰과 유저를 넣어서 auth 미들웨어를 지나고 콜백에서 이 req를 사용할 수 있게 한다
 		req.user = user;
 		next();
-	})
+	});
 };
 
 
