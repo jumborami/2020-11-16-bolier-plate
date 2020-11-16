@@ -27,6 +27,8 @@ app.post('/register', (req, res) => {
 	//회원 가입할 때 필요한 정보들을 clinet에서 가져오면
 	//그것들을 데이터베이스에 넣어준다
 	const user = new User(req.body);
+
+	//저장하기 전에 비밀번호를 암호화해서 저장하는 것이 필요 (User.js)
 	user.save((err, userInfo) => { //save()는 몽고디비의 메서드 / req.body정보를 user모델에 저장
 		if(err) return res.json({ success: false, err}); //에러가 나면 제이슨형식으로 돌려줄 내용
 		return res.status(200).json({ success: true }); //성공하면 돌려줄 내용
