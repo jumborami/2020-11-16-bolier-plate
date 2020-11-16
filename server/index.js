@@ -3,13 +3,14 @@
 const express = require('express');
 const app = express();
 //const bodyParser = require('body-parser'); // body데이터를 분석(parse)해서 req.body로 출력해준다 => deprecated 인 듯?
-const { User } = require('./models/User'); // 유저모델 가져오기
-const config = require('./config/key'); //key.js 내용 저장 (mongoose.connect를 위한 mongoURI 정보)
+const config = require('./config/key');      //key.js 내용 저장 (mongoose.connect를 위한 mongoURI 정보)
+const cookieParser = require('cookie-parser'); // 토큰을 쿠키에 저장하기 위한 cookie-parser
+const { User } = require('./models/User');   // 유저모델 가져오기
 
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
+app.use(cookieParser()); //cookieParser 사용 가능
 
 //몽고 DB 연결하기
 const mongoose = require('mongoose');
@@ -21,8 +22,12 @@ const port = 4000;
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 
 
+
 //route
+//root
 app.get('/', (req, res) => res.send('Hello World!'));
+
+//register
 app.post('/register', (req, res) => {
 	//회원 가입할 때 필요한 정보들을 clinet에서 가져오면
 	//그것들을 데이터베이스에 넣어준다
@@ -33,4 +38,34 @@ app.post('/register', (req, res) => {
 		if(err) return res.json({ success: false, err}); //에러가 나면 제이슨형식으로 돌려줄 내용
 		return res.status(200).json({ success: true }); //성공하면 돌려줄 내용
 	}); 
-})
+});
+
+//login
+app.post('/login', (req, res) => {
+
+	//요청받은 이메일을 디비에서 찾는다 / findOne()은 몽고디비에서 제공하는 메서드
+	User.findOne({ email: req.body.email }, (err, user) => {
+		if(!user) { //메일이 없다면
+			return res.json({
+				loginSuccess: false,
+				message: "없는 이메일입니다."
+			});
+		};
+
+		//메일이 디비에 있다면, 요청받은 비번과 디비의 비번이 맞는지 확인한다 (User.js에 작성한 comparePassword 메서드 사용)
+		user.comparePassword(req.body.password, (err, isMatch) => { //isMatch => 비번이 맞다면 들어올 정보
+			if(!isMatch)
+				return res.json({ loginSuccess: false, message: "비밀번호가 다릅니다."});
+			
+			//비번이 맞다면 토큰을 생성한다 (User.js에 작성한 generateToken 메서드 사용)
+			user.generateToken((err, user) => {
+				if(err) return res.status(400).send(err);
+
+				// user에 저장해서 받아온 토큰을 어디에 저장할까? - 쿠키, 로컬스토리지, 세션 다 가능
+				res.cookie("x_auth", user.token) //개발창의 application의 cookies 에 x_auth 라는 이름으로 토큰이 저장된다
+				.status(200) //성공했다는 의미
+				.json({ loginSuccess: true, userID: user._id }); //성공하면 띄울 내용
+			});
+		});
+	});
+});

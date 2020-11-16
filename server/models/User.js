@@ -2,7 +2,8 @@
 
 const mongoose = require('mongoose'); //mongo DB 를 편하게 사용하기 위해 mongoose 가져오기
 const bcrypt = require('bcrypt');     //비밀번호 암호화를 위해 bcrypt 가져오기
-const saltRounds = 10;                //10자리인 salt
+const saltRounds = 10;                //bcrypt -> 10자리인 salt
+const jwt = require('jsonwebtoken');  //토큰 생성을 위해 jsonwebtoken 가져오기
 
 const userSchema = mongoose.Schema({
 	name: {
@@ -42,7 +43,7 @@ const userSchema = mongoose.Schema({
 //mongoose의 메서드 => pre()
 userSchema.pre('save', function( next ){ //저장하기 전에 펑션을 줘서 뭔가를 하게 한 후, next를 통해 save로 보냄
 	
-	//선언한 변수 user에 유저스키바 정보가 담긴다
+	//선언한 변수 user에 유저스키마 정보가 담긴다
 	var user = this; 
 	
 	//password 가 변경될 때만 암호화한다
@@ -59,6 +60,31 @@ userSchema.pre('save', function( next ){ //저장하기 전에 펑션을 줘서 
 			next();
 	}
 });
+
+
+//로그인 시 사용할 메서드 (비번 일치 여부 확인 (bcrypt 사용))
+userSchema.methods.comparePassword = function(plainPassword, cb) {
+
+	//그냥 비번(plainPassword)와 암호화된 비번 비교 => 그냥 비번을 암호화해서 확인해야 한다
+	bcrypt.compare(plainPassword, this.password, function(err, isMatch) {
+		if(err) return cb(err); //에러가 난다면 콜백에 에러 리턴
+		cb(null, isMatch);      //일치하다면 콜백을 주는데 에러없고(널) isMatch(true?)
+	});
+};
+
+
+//로그인 시 사용할 메서드 (비번 일치 확인 후 토큰 생성 (jsonwebtoken 사용))
+userSchema.methods.generateToken = function(cb) {
+	var user = this;
+
+	//user._id + 'secretToken' = token 생성
+	var token = jwt.sign(user._id.toHexString(), 'secretToken'); //_id는 디비에 들어오는 _id이다
+	user.token = token; //user의 token에 생성된 token을 넣는다
+	user.save(function(err, user) {
+		if(err) return cb(err); //에러가 있다면 콜백으로 에러 전달
+		cb(null, user);         //유저에 저장이 잘 됐다면 에러는 없고(널) user정보 전달
+	});
+};
 
 
 // 스키마는 모델로 감싸준다
