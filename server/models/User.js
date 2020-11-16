@@ -80,10 +80,26 @@ userSchema.methods.generateToken = function(cb) {
 	//user._id + 'secretToken' = token 생성
 	var token = jwt.sign(user._id.toHexString(), 'secretToken'); //_id는 디비에 들어오는 _id이다
 	user.token = token; //user의 token에 생성된 token을 넣는다
-	user.save(function(err, user) {
+	user.save(function(err, user) { //db에 토큰 저장? (server 측)
 		if(err) return cb(err); //에러가 있다면 콜백으로 에러 전달
 		cb(null, user);         //유저에 저장이 잘 됐다면 에러는 없고(널) user정보 전달
 	});
+};
+
+
+//인증 시 사용할 메서드 (토큰 복호화하여 디비에서 유저 찾기 (jsonwebtoken 사용))
+userSchema.statics.findByToken = function ( token, cb) {
+	var user = this;
+
+	//client 측 cookie의 토큰을 decode복호화 한다
+	jwt.verify(token, 'secretToken', function(err, decoded) { //복호화된 유저아이디가 decoded에 들어간다
+		//client 에서 가져온 토큰과 디비에 보관된 토큰이 일치하는지 확인 (디비에서 복호화한 아이디와 토큰을 찾는다)
+		user.findOne({"_id": decoded, "token": token}, function(err, user) {
+			if(err) return cb(err);
+			cb(null, user);
+		});
+	});
+
 };
 
 
@@ -93,3 +109,8 @@ const User = mongoose.model('User', userSchema); //모델의 이름, 스키마
 
 // 내보내기
 module.exports = { User };
+
+
+//userSchema.methods 와 userSchema.statics의 차이
+//methods 는 객체의 인스턴스를 만들어야만 사용이 가능하고, statics는 없어도 사용이 가능
+//statics 는 인스턴스와 무관하게 공용적으로 자주 쓰이는 함수가 필요할 때 쓰는 듯 하다고 함
