@@ -55,7 +55,9 @@ userSchema.pre('save', function( next ){ //저장하기 전에 펑션을 줘서 
 				next();
 			});
 		});
-	};
+	} else { //비밀번호를 변경하지 않은 경우. next()를 해주어야 머물지 않고 save로 넘어간다
+			next();
+	}
 });
 
 
