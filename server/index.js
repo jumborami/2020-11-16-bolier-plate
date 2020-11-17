@@ -9,7 +9,13 @@ const { User } = require('./models/User');     // 유저모델 가져오기
 const { auth } = require('./middleware/auth'); // auth 미들웨어 가져오기
 
 const cors = require('cors');
-app.use(cors());
+let cors_origin = [`http://localhost:3000`];
+app.use(
+	cors({
+		origin: cors_origin,
+		credentials: true
+	})
+);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -29,6 +35,10 @@ app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 //route
 //루트
 app.get('/', (req, res) => res.send('Hello World!'));
+
+app.get('/api/hello', (req, res) => {
+	res.send("안녕하세요")
+})
 
 //레지스터
 app.post('/api/users/register', (req, res) => {
@@ -65,7 +75,7 @@ app.post('/api/users/login', (req, res) => {
 				if(err) return res.status(400).send(err);
 
 				// user에 저장해서 받아온 토큰을 어디에 저장할까? - 쿠키, 로컬스토리지, 세션 다 가능
-				res.cookie("x_auth", user.token) //개발창의 application의 cookies 에 x_auth 라는 이름으로 토큰이 저장된다(client 측)
+				res.cookie('x_auth', user.token) //개발창의 application의 cookies 에 x_auth 라는 이름으로 토큰이 저장된다(client 측)
 				.status(200) //성공했다는 의미
 				.json({ loginSuccess: true, userID: user._id }); //성공하면 띄울 내용
 			});

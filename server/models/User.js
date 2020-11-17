@@ -83,6 +83,7 @@ userSchema.methods.generateToken = function(cb) {
 	user.save(function(err, user) { //db에 토큰 저장? (server 측)
 		if(err) return cb(err); //에러가 있다면 콜백으로 에러 전달
 		cb(null, user);         //유저에 저장이 잘 됐다면 에러는 없고(널) user정보 전달
+		console.log(user.token);
 	});
 };
 
@@ -90,7 +91,7 @@ userSchema.methods.generateToken = function(cb) {
 //인증 시 사용할 메서드 (토큰 복호화하여 디비에서 유저 찾기 (jsonwebtoken 사용))
 userSchema.statics.findByToken = function(token, cb) {
 	var user = this;
-
+	console.log('94: ' , user);
 	//client 측 cookie의 토큰을 decode복호화 한다
 	jwt.verify(token, 'secret', function(err, decoded) {//복호화된 유저아이디가 decoded에 들어간다
 		//client 에서 가져온 토큰과 디비에 보관된 토큰이 일치하는지 확인 (디비에서 복호화한 아이디와 토큰을 찾는다)
